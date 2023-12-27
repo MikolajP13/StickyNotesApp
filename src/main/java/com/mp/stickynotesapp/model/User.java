@@ -1,5 +1,6 @@
 package com.mp.stickynotesapp.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -22,10 +23,13 @@ public class User {
     private Long id;
 
     @Column(nullable = false, unique = true)
-    private Long jobID;
+    private String jobID;
 
-    @OneToMany(mappedBy = "user", fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "user", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @JsonIgnore
     private Set<Role> roles;
+
+    private String username;
 
     private String firstName;
 
@@ -39,11 +43,17 @@ public class User {
 
     private String jobTitle;
 
+    private String password;
+
+    private Long creatorId;
+
     private Boolean isFirstLogin;
 
     @OneToMany(mappedBy = "assignedTo")
+    @JsonIgnore
     private List<Note> assignedNotes;
 
     @OneToMany(mappedBy = "createdBy")
+    @JsonIgnore
     private List<Note> createdNotes;
 }

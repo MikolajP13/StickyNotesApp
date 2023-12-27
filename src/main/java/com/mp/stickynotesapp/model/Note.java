@@ -27,7 +27,7 @@ public class Note {
     @ManyToOne
     @JoinColumn(name = "created_by_id", nullable = false)
     private User createdBy;
-    private Date created;
+    private Date creationDate;
     private Date dateFrom;
     private Date dateTo;
     private Priority priority;
