@@ -1,7 +1,9 @@
 package com.mp.stickynotesapp.controller;
 
+import com.mp.stickynotesapp.dto.UserCreationDTO;
+import com.mp.stickynotesapp.dto.UserDTO;
+import com.mp.stickynotesapp.dto.UserForNoteDTO;
 import com.mp.stickynotesapp.model.User;
-import com.mp.stickynotesapp.repository.UserRepository;
 import com.mp.stickynotesapp.service.UserService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -18,55 +20,53 @@ import java.util.Map;
 public class UserController {
 
     private UserService userService;
-    private final UserRepository userRepository;
-
-    @PreAuthorize("hasRole('MANAGER')")
-    @GetMapping("/all/team/{teamName}/manager/{id}")
-    public ResponseEntity<List<User>> findAllByTeamName(@PathVariable String teamName, @PathVariable Long id) {
-        List<User> users = userService.findAllByTeamNameAndManagerId(teamName, id);
-        return ResponseEntity.ok(users);
-    }
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/all")
-    public ResponseEntity<List<User>> findAllBy() {
-        List<User> users = userService.findAllBy();
+    public ResponseEntity<List<UserDTO>> findAllBy() {
+        List<UserDTO> users = userService.findAllBy();
         return ResponseEntity.ok(users);
     }
-
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/all/workCountry/{workCountry}")
-    public ResponseEntity<List<User>> findAllByWorkCountry(@PathVariable String workCountry) {
-        List<User> users = userService.findAllByWorkCountry(workCountry);
+    public ResponseEntity<List<UserDTO>> findAllByWorkCountry(@PathVariable String workCountry) {
+        List<UserDTO> users = userService.findAllByWorkCountry(workCountry);
         return ResponseEntity.ok(users);
     }
-
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/createManager/admin/{id}")
-    public ResponseEntity<User> createManager(@RequestBody User user, @PathVariable Long id) {
-        User createdManager = userService.createManager(user, id);
+    public ResponseEntity<UserCreationDTO> createManager(@RequestBody User user, @PathVariable Long id) {
+        UserCreationDTO createdManager = userService.createManager(user, id);
         return new ResponseEntity<>(createdManager, HttpStatus.CREATED);
     }
 
     @PreAuthorize("hasRole('MANAGER')")
+    @GetMapping("/all/team/{teamName}/manager/{id}")
+    public ResponseEntity<List<UserForNoteDTO>> findAllByTeamName(@PathVariable String teamName, @PathVariable Long id) {
+        List<UserForNoteDTO> users = userService.findAllByTeamNameAndManagerId(teamName, id);
+        return ResponseEntity.ok(users);
+    }
+
+    @PreAuthorize("hasRole('MANAGER')")
     @PostMapping("/createEmployee/manager/{id}")
-    public ResponseEntity<User> createEmployee(@RequestBody User user, @PathVariable Long id) {
-        User createdEmployee = userService.createEmployee(user, id);
+    public ResponseEntity<UserCreationDTO> createEmployee(@RequestBody User user, @PathVariable Long id) {
+        UserCreationDTO createdEmployee = userService.createEmployee(user, id);
         return new ResponseEntity<>(createdEmployee, HttpStatus.CREATED);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @DeleteMapping("/deleteUser/{userId}")
-    public ResponseEntity<String> deleteUser(@PathVariable Long userId) {
-        String msg = userService.deleteUserById(userId);
-        return new ResponseEntity<>(msg, HttpStatus.OK);
+    @DeleteMapping("/{id}/delete")
+    public ResponseEntity<Long> deleteUser(@PathVariable Long id) {
+        return userService.deleteUserById(id) ?
+                new ResponseEntity<>(id, HttpStatus.OK) : new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'EMPLOYEE')")
-    @PatchMapping("/{id}/update/password")
-    public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody Map<String, Object> fields) {
-        User updatedUser = userService.updateUser(id, fields);
-        return new ResponseEntity<>(updatedUser, HttpStatus.CREATED);
+    @PreAuthorize("hasRole('EMPLOYEE')")
+    @PatchMapping("/{id}/update-password")
+    public ResponseEntity<Boolean> updateUser(@PathVariable Long id, @RequestBody Map<String, Object> fields) {
+
+        return userService.updateUser(id, fields) ?
+                new ResponseEntity<>(true, HttpStatus.OK) : new ResponseEntity<>(false, HttpStatus.CONFLICT);
     }
 
 }

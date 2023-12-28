@@ -1,16 +1,19 @@
 package com.mp.stickynotesapp.service;
 
+import com.mp.stickynotesapp.dto.NoteDTO;
 import com.mp.stickynotesapp.exception.UserException;
 import com.mp.stickynotesapp.model.Note;
 import com.mp.stickynotesapp.model.User;
 import com.mp.stickynotesapp.repository.NoteRepository;
 import com.mp.stickynotesapp.repository.UserRepository;
+import com.mp.stickynotesapp.util.NoteMapper;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
@@ -18,6 +21,7 @@ public class NoteService {
 
     private final NoteRepository noteRepository;
     private final UserRepository userRepository;
+    private final NoteMapper noteMapper;
 
     public Note createNote(Note note, Long creatorId) {
         Note newNote = new Note();
@@ -133,7 +137,7 @@ public class NoteService {
         return optionalList.orElse(Collections.emptyList());
     }
 
-    public List<Note> findAllByCreatedBy(Long creatorId) {
+    public List<NoteDTO> findAllByCreatedBy(Long creatorId) {
         Optional<User> optionalUser = userRepository.findById(creatorId);
 
         if (optionalUser.isEmpty())
@@ -142,8 +146,10 @@ public class NoteService {
         User createdBy = optionalUser.get();
 
         Optional<List<Note>> optionalList = noteRepository.findAllByCreatedBy(createdBy);
-
-        return optionalList.orElse(Collections.emptyList());
+        List<Note> notes = optionalList.orElse(Collections.emptyList());
+        return notes.stream()
+                .map(noteMapper::convertToNoteDTO)
+                .collect(Collectors.toList());
     }
 
     public List<Note> findAllByAssignedTo(Long assignedToId) {
@@ -197,5 +203,6 @@ public class NoteService {
 
         return notesCounter;
     }
+
 
 }
