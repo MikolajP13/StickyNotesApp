@@ -33,8 +33,6 @@ public class SecurityConfiguration {
                 .csrf(AbstractHttpConfigurer::disable)
                 .headers(httpSecurityHeadersConfigurer -> httpSecurityHeadersConfigurer.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin))
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers("/user").hasRole("ADMIN")
-                        .requestMatchers("/note").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .formLogin(Customizer.withDefaults())
@@ -52,7 +50,7 @@ public class SecurityConfiguration {
 
         roleHierarchy.setHierarchy("""
             ROLE_ADMIN > ROLE_MANAGER
-            ROLE_MANAGER > ROLE_USER
+            ROLE_MANAGER > ROLE_EMPLOYEE
             """);
 
         return roleHierarchy;

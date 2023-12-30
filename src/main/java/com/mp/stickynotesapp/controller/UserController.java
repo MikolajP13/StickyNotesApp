@@ -28,13 +28,13 @@ public class UserController {
         return ResponseEntity.ok(users);
     }
     @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping("/all/workCountry/{workCountry}")
+    @GetMapping("/all/work-country/{workCountry}")
     public ResponseEntity<List<UserDTO>> findAllByWorkCountry(@PathVariable String workCountry) {
         List<UserDTO> users = userService.findAllByWorkCountry(workCountry);
         return ResponseEntity.ok(users);
     }
     @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/createManager/admin/{id}")
+    @PostMapping("/create-manager/admin/{id}")
     public ResponseEntity<UserCreationDTO> createManager(@RequestBody User user, @PathVariable Long id) {
         UserCreationDTO createdManager = userService.createManager(user, id);
         return new ResponseEntity<>(createdManager, HttpStatus.CREATED);
@@ -48,7 +48,7 @@ public class UserController {
     }
 
     @PreAuthorize("hasRole('MANAGER')")
-    @PostMapping("/createEmployee/manager/{id}")
+    @PostMapping("/create-employee/manager/{id}")
     public ResponseEntity<UserCreationDTO> createEmployee(@RequestBody User user, @PathVariable Long id) {
         UserCreationDTO createdEmployee = userService.createEmployee(user, id);
         return new ResponseEntity<>(createdEmployee, HttpStatus.CREATED);
@@ -63,10 +63,17 @@ public class UserController {
 
     @PreAuthorize("hasRole('EMPLOYEE')")
     @PatchMapping("/{id}/update-password")
-    public ResponseEntity<Boolean> updateUser(@PathVariable Long id, @RequestBody Map<String, Object> fields) {
+    public ResponseEntity<UserDTO> updateUser(@PathVariable Long id, @RequestBody Map<String, Object> fields) {
 
-        return userService.updateUser(id, fields) ?
-                new ResponseEntity<>(true, HttpStatus.OK) : new ResponseEntity<>(false, HttpStatus.CONFLICT);
+        return new ResponseEntity<>(userService.updateUser(id, fields), HttpStatus.OK);
     }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PatchMapping("{id}/admin-update")
+    public ResponseEntity<UserDTO> updateUserPassword(@PathVariable Long id, @RequestBody Map<String, Object> fields) {
+
+        return new ResponseEntity<>(userService.updateUserPassword(id, fields), HttpStatus.OK);
+    }
+
 
 }
