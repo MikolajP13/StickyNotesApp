@@ -14,8 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Field;
-import java.text.DateFormat;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -34,9 +34,9 @@ public class NoteService {
         Optional<User> assignedUserOptional = userRepository.findById(note.getAssignedTo().getId());
 
         if (creatorOptional.isEmpty())
-            throw new UserNotFoundException("User with id=" + creatorId + "does not exist!");
+            throw new UserNotFoundException("User with id=" + creatorId + " does not exist!");
         else if (assignedUserOptional.isEmpty())
-            throw new UserNotFoundException("Assigned user with id=" + note.getAssignedTo().getId() + "does not exist!");
+            throw new UserNotFoundException("Assigned user with id=" + note.getAssignedTo().getId() + " does not exist!");
         else if (note.getDateFrom().after(note.getDateTo()))
             throw new InvalidNoteDataException("Date to must be after date from!");
 
@@ -59,7 +59,7 @@ public class NoteService {
         return this.noteMapper.convertToNoteDTO(newNote);
     }
 
-    public Boolean deleteNote(Long id) {
+    public Boolean deleteNoteById(Long id) {
         Optional<Note> noteOptional = noteRepository.findById(id);
 
         if (noteOptional.isEmpty()) {
@@ -71,7 +71,33 @@ public class NoteService {
         }
     }
 
-    public NoteDTO updateNote(Long id, Map<String, Object> fields) {
+    public NoteDTO updateNoteStatus(Long id, Map<String, Object> fields) {
+        Optional<Note> noteOptional = noteRepository.findById(id);
+
+        if (noteOptional.isEmpty())
+            throw new NoteNotFoundException("Note with id=" + id + " does not exist!");
+
+        Note noteToUpdate = noteOptional.get();
+
+        fields.forEach((k, v) -> {
+            Field statusField = ReflectionUtils.findField(Note.class, k);
+
+            if (statusField == null || !k.equals("status"))
+                throw new InvalidNoteDataException("Only status field is available!");
+
+            statusField.setAccessible(true);
+            Enum<?> enumValue = Enum.valueOf((Class<Enum>) statusField.getType(), (String) fields.get("status"));
+            ReflectionUtils.setField(statusField, noteToUpdate, enumValue);
+
+        });
+
+        noteRepository.save(noteToUpdate);
+
+        return this.noteMapper.convertToNoteDTO(noteToUpdate);
+    }
+
+    public NoteDTO updateNoteDetails(Long id, Map<String, Object> fields) {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
         Optional<Note> noteOptional = noteRepository.findById(id);
 
         if (noteOptional.isEmpty())
@@ -81,32 +107,37 @@ public class NoteService {
 
         fields.forEach((k, v) -> {
             Field field = ReflectionUtils.findField(Note.class, k);
+
+            if (k == null)
+                throw new InvalidNoteDataException("Available fields are: assignedTo, dateFrom" +
+                        ", dateTo or priority");
+
             field.setAccessible(true);
             if (field.getType().isEnum()) {
-                Enum<?> enumValue = Enum.valueOf((Class<Enum>) field.getType(), (String) v);
+                Enum<?> enumValue = Enum.valueOf((Class<Enum>) field.getType(), (String) fields.get(k));
                 ReflectionUtils.setField(field, noteToUpdate, enumValue);
-            } else if (k.equals("dateFrom") || k.equals("dateTo")) {
 
+            } else if (k.equals("dateFrom") || k.equals("dateTo")) {
+                String newDate = v.toString();
                 try {
-                    Date from = k.equals("dateFrom") ? DateFormat.getDateInstance().parse(field.toString()) : noteToUpdate.getDateFrom();
-                    Date to = k.equals("dateTo") ? DateFormat.getDateInstance().parse(field.toString()) : noteToUpdate.getDateTo();
-                    if (from.after(to))
+                    Date from = k.equals("dateFrom") ? sdf.parse(newDate) : noteToUpdate.getDateFrom();
+                    Date to = k.equals("dateTo") ? sdf.parse(newDate) : noteToUpdate.getDateTo();
+
+                    if (from.after(to) || from.equals(to))
                         throw new InvalidNoteDataException("Date to must be after date from!");
 
+                    ReflectionUtils.setField(field, noteToUpdate, sdf.parse(newDate));
                 } catch (ParseException e) {
                     throw new RuntimeException(e);
                 }
-                ReflectionUtils.setField(field, noteToUpdate, v);
             } else if (k.equals("assignedTo")) {
                 Long assignedUserId = Long.parseLong(v.toString());
                 Optional<User> assignedUserOptional = userRepository.findById(assignedUserId);
 
                 if (assignedUserOptional.isEmpty())
-                    throw new UserNotFoundException("User with id=" + assignedUserId + "does not exist!");
+                    throw new UserNotFoundException("User with id=" + assignedUserId + " does not exist!");
 
-                ReflectionUtils.setField(field, noteToUpdate, v);
-            } else {
-                ReflectionUtils.setField(field, noteToUpdate, v);
+                ReflectionUtils.setField(field, noteToUpdate, assignedUserOptional.get());
             }
         });
 
@@ -114,6 +145,7 @@ public class NoteService {
 
         return this.noteMapper.convertToNoteDTO(noteToUpdate);
     }
+
 
     public List<NoteDTO> findAllByCreatedByAndCreationDateBetween(Long creatorId, Date startDate, Date endDate) {
         Optional<User> optionalUser = userRepository.findById(creatorId);
@@ -233,5 +265,24 @@ public class NoteService {
         return noteRepository.countAllByCreatedByAndPriorityAndDateToBetween(createdBy, priority, startDate, endDate);
     }
 
+    public List<NoteDTO> addNoteList(List<Note> notes, Long id) {
+        Optional<User> optionalManager = userRepository.findById(id);
 
+        return notes.stream().map(note -> {
+            Note newNote = new Note();
+            Optional<User> assignedUserOptional = userRepository.findById(note.getAssignedTo().getId());
+            newNote.setAssignedTo(assignedUserOptional.get());
+            newNote.setCreatedBy(optionalManager.get());
+            newNote.setTitle(note.getTitle());
+            newNote.setProjectName(note.getProjectName());
+            newNote.setContent(note.getContent());
+            newNote.setCreationDate(new Date());
+            newNote.setDateFrom(note.getDateFrom());
+            newNote.setDateTo(note.getDateTo());
+            newNote.setPriority(note.getPriority());
+            newNote.setStatus(Note.Status.NEW);
+            noteRepository.save(newNote);
+            return noteMapper.convertToNoteDTO(newNote);
+        }).collect(Collectors.toList());
+    }
 }

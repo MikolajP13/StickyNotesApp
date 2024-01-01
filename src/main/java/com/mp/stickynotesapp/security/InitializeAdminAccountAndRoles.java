@@ -13,7 +13,7 @@ import java.util.Optional;
 
 @Component
 @AllArgsConstructor
-public class InitializeAdminAccount implements CommandLineRunner {
+public class InitializeAdminAccountAndRoles implements CommandLineRunner {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -24,18 +24,27 @@ public class InitializeAdminAccount implements CommandLineRunner {
         Optional<User> optionalUser = this.userRepository.findByFirstName("Admin");
 
         if (optionalUser.isEmpty()) {
+
+            Role roleAdmin = new Role();
+            roleAdmin.setRole("ROLE_ADMIN");
+            roleRepository.save(roleAdmin);
+
+            Role roleManager = new Role();
+            roleManager.setRole("ROLE_MANAGER");
+            roleRepository.save(roleManager);
+
+            Role roleEmployee = new Role();
+            roleEmployee.setRole("ROLE_EMPLOYEE");
+            roleRepository.save(roleEmployee);
+
             User admin = new User();
             admin.setJobID("sa");
             admin.setFirstName("Admin");
             admin.setUsername("sa_adm");
             admin.setPassword(passwordEncoder.encode("admin123"));
+            admin.getRoles().add(roleAdmin);
 
             this.userRepository.save(admin);
-
-            Role roleAdmin = new Role();
-            roleAdmin.setRole("ROLE_ADMIN");
-            roleAdmin.setUser(admin);
-            roleRepository.save(roleAdmin);
         }
     }
 }

@@ -5,6 +5,7 @@ import com.mp.stickynotesapp.dto.UserDTO;
 import com.mp.stickynotesapp.dto.UserForNoteDTO;
 import com.mp.stickynotesapp.model.User;
 import com.mp.stickynotesapp.service.UserService;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -35,45 +36,39 @@ public class UserController {
     }
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/create-manager/admin/{id}")
-    public ResponseEntity<UserCreationDTO> createManager(@RequestBody User user, @PathVariable Long id) {
+    public ResponseEntity<UserCreationDTO> createManager(@Valid @RequestBody User user, @PathVariable Long id) {
         UserCreationDTO createdManager = userService.createManager(user, id);
         return new ResponseEntity<>(createdManager, HttpStatus.CREATED);
     }
-
     @PreAuthorize("hasRole('MANAGER')")
     @GetMapping("/all/team/{teamName}/manager/{id}")
-    public ResponseEntity<List<UserForNoteDTO>> findAllByTeamName(@PathVariable String teamName, @PathVariable Long id) {
+    public ResponseEntity<List<UserForNoteDTO>> findAllByTeamNameAndManagerId(@PathVariable String teamName, @PathVariable Long id) {
         List<UserForNoteDTO> users = userService.findAllByTeamNameAndManagerId(teamName, id);
         return ResponseEntity.ok(users);
     }
-
     @PreAuthorize("hasRole('MANAGER')")
     @PostMapping("/create-employee/manager/{id}")
-    public ResponseEntity<UserCreationDTO> createEmployee(@RequestBody User user, @PathVariable Long id) {
+    public ResponseEntity<UserCreationDTO> createEmployee(@Valid @RequestBody User user, @PathVariable Long id) {
         UserCreationDTO createdEmployee = userService.createEmployee(user, id);
         return new ResponseEntity<>(createdEmployee, HttpStatus.CREATED);
     }
-
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}/delete")
     public ResponseEntity<Long> deleteUser(@PathVariable Long id) {
         return userService.deleteUserById(id) ?
                 new ResponseEntity<>(id, HttpStatus.OK) : new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
-
     @PreAuthorize("hasRole('EMPLOYEE')")
     @PatchMapping("/{id}/update-password")
-    public ResponseEntity<UserDTO> updateUser(@PathVariable Long id, @RequestBody Map<String, Object> fields) {
-
-        return new ResponseEntity<>(userService.updateUser(id, fields), HttpStatus.OK);
-    }
-
-    @PreAuthorize("hasRole('ADMIN')")
-    @PatchMapping("{id}/admin-update")
     public ResponseEntity<UserDTO> updateUserPassword(@PathVariable Long id, @RequestBody Map<String, Object> fields) {
 
         return new ResponseEntity<>(userService.updateUserPassword(id, fields), HttpStatus.OK);
     }
+    @PreAuthorize("hasRole('ADMIN')")
+    @PatchMapping("{id}/admin-update")
+    public ResponseEntity<UserDTO> updateUserByAdministrator(@PathVariable Long id, @RequestBody Map<String, Object> fields) {
 
+        return new ResponseEntity<>(userService.updateUserByAdministrator(id, fields), HttpStatus.OK);
+    }
 
 }

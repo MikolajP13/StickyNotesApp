@@ -10,5 +10,6 @@ public class UserCreationDTO {
     private String firstName;
     private String lastName;
     private String workCountry;
+    private String teamName;
     private String jobTitle;
 }

@@ -1,7 +1,6 @@
 package com.mp.stickynotesapp.dto;
 
 import com.mp.stickynotesapp.model.Note;
-import com.mp.stickynotesapp.model.Role;
 import lombok.Data;
 
 import java.util.Date;
@@ -12,7 +11,7 @@ import java.util.Set;
 public class UserDTO {
     private Long id;
     private String jobID;
-    private Set<Role> roles;
+    private Set<String> roles;
     private String username;
     private String firstName;
     private String lastName;
@@ -23,6 +22,6 @@ public class UserDTO {
     private String password;
     private Long creatorId;
     private Boolean isFirstLogin;
-    private List<Note> assignedNotes;
-    private List<Note> createdNotes;
+    private List<NoteDTO> assignedNotes;
+    private List<NoteDTO> createdNotes;
 }

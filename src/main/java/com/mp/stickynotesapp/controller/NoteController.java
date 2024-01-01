@@ -3,6 +3,7 @@ package com.mp.stickynotesapp.controller;
 import com.mp.stickynotesapp.dto.NoteDTO;
 import com.mp.stickynotesapp.model.Note;
 import com.mp.stickynotesapp.service.NoteService;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -24,7 +25,7 @@ public class NoteController {
 
     @PreAuthorize("hasRole('MANAGER')")
     @PostMapping("/create/manager/{id}")
-    public ResponseEntity<NoteDTO> createNote(@RequestBody Note note, @PathVariable Long id) {
+    public ResponseEntity<NoteDTO> createNote(@Valid @RequestBody Note note, @PathVariable Long id) {
         NoteDTO newNote = noteService.createNote(note, id);
         return new ResponseEntity<>(newNote, HttpStatus.CREATED);
     }
@@ -37,15 +38,21 @@ public class NoteController {
     }
 
     @PreAuthorize("hasRole('EMPLOYEE')")
-    @PatchMapping("/{id}/update")
-    public ResponseEntity<NoteDTO> updateNote(@PathVariable Long id, @RequestBody Map<String, Object> fields) {
-        return new ResponseEntity<>(noteService.updateNote(id, fields), HttpStatus.OK);
+    @PatchMapping("/{id}/update-status")
+    public ResponseEntity<NoteDTO> updateNoteStatus(@PathVariable Long id, @RequestBody Map<String, Object> fields) {
+        return new ResponseEntity<>(noteService.updateNoteStatus(id, fields), HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasRole('MANAGER')")
+    @PatchMapping("/{id}/update-details")
+    public ResponseEntity<NoteDTO> updateNoteDetails(@PathVariable Long id, @RequestBody Map<String, Object> fields) {
+        return new ResponseEntity<>(noteService.updateNoteDetails(id, fields), HttpStatus.OK);
     }
 
     @PreAuthorize("hasRole('MANAGER')")
     @DeleteMapping("/{id}/delete")
     public ResponseEntity<Boolean> deleteNote(@PathVariable Long id) {
-        boolean result = noteService.deleteNote(id);
+        boolean result = noteService.deleteNoteById(id);
         return result ? ResponseEntity.ok(true) : ResponseEntity.notFound().build();
     }
 

@@ -3,16 +3,25 @@ package com.mp.stickynotesapp.util;
 import com.mp.stickynotesapp.dto.UserCreationDTO;
 import com.mp.stickynotesapp.dto.UserDTO;
 import com.mp.stickynotesapp.dto.UserForNoteDTO;
+import com.mp.stickynotesapp.model.Role;
 import com.mp.stickynotesapp.model.User;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.stream.Collectors;
+
 @Component
+@AllArgsConstructor
 public class UserMapper {
+
+    private final NoteMapper noteMapper;
+
     public UserCreationDTO convertToUserCreationDTO(User user) {
         UserCreationDTO dto = new UserCreationDTO();
 
         dto.setJobID(user.getJobID());
         dto.setJobTitle(user.getJobTitle());
+        dto.setTeamName(user.getTeamName());
         dto.setFirstName(user.getFirstName());
         dto.setLastName(user.getLastName());
         dto.setWorkCountry(user.getWorkCountry());
@@ -39,7 +48,6 @@ public class UserMapper {
 
         dto.setId(user.getId());
         dto.setJobID(user.getJobID());
-        dto.setRoles(user.getRoles());
         dto.setUsername(user.getUsername());
         dto.setFirstName(user.getFirstName());
         dto.setLastName(user.getLastName());
@@ -49,8 +57,17 @@ public class UserMapper {
         dto.setJobTitle(user.getJobTitle());
         dto.setPassword(user.getPassword());
         dto.setCreatorId(user.getCreatorId());
-        dto.setAssignedNotes(user.getAssignedNotes());
-        dto.setCreatedNotes(user.getCreatedNotes());
+        dto.setIsFirstLogin(user.getIsFirstLogin());
+        dto.setRoles(user.getRoles().stream()
+                .map(Role::getRole)
+                .collect(Collectors.toSet())
+        );
+        dto.setAssignedNotes(user.getAssignedNotes().stream()
+                .map(noteMapper::convertToNoteDTO)
+                .collect(Collectors.toList()));
+        dto.setCreatedNotes(user.getCreatedNotes().stream()
+                .map(noteMapper::convertToNoteDTO)
+                .collect(Collectors.toList()));
 
         return dto;
     }
