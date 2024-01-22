@@ -16,7 +16,7 @@ import java.util.List;
 
 @RestController
 @AllArgsConstructor
-@RequestMapping("/test")
+@RequestMapping("/test-data")
 public class UploadTestDataController {
 
     private final NoteService noteService;

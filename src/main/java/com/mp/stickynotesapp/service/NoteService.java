@@ -1,5 +1,6 @@
 package com.mp.stickynotesapp.service;
 
+import com.mp.stickynotesapp.dto.IncompleteNoteDataDTO;
 import com.mp.stickynotesapp.dto.NoteDTO;
 import com.mp.stickynotesapp.exception.InvalidNoteDataException;
 import com.mp.stickynotesapp.exception.NoteNotFoundException;
@@ -11,11 +12,7 @@ import com.mp.stickynotesapp.repository.UserRepository;
 import com.mp.stickynotesapp.util.NoteMapper;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.util.ReflectionUtils;
 
-import java.lang.reflect.Field;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -71,81 +68,90 @@ public class NoteService {
         }
     }
 
-    public NoteDTO updateNoteStatus(Long id, Map<String, Object> fields) {
+    public NoteDTO updateNoteStatus(Long id, IncompleteNoteDataDTO incompleteNoteDataDTO) {
         Optional<Note> noteOptional = noteRepository.findById(id);
 
         if (noteOptional.isEmpty())
             throw new NoteNotFoundException("Note with id=" + id + " does not exist!");
 
         Note noteToUpdate = noteOptional.get();
+        Note.Status newStatus = incompleteNoteDataDTO.getStatus();
 
-        fields.forEach((k, v) -> {
-            Field statusField = ReflectionUtils.findField(Note.class, k);
-
-            if (statusField == null || !k.equals("status"))
-                throw new InvalidNoteDataException("Only status field is available!");
-
-            statusField.setAccessible(true);
-            Enum<?> enumValue = Enum.valueOf((Class<Enum>) statusField.getType(), (String) fields.get("status"));
-            ReflectionUtils.setField(statusField, noteToUpdate, enumValue);
-
-        });
-
-        noteRepository.save(noteToUpdate);
-
-        return this.noteMapper.convertToNoteDTO(noteToUpdate);
-    }
-
-    public NoteDTO updateNoteDetails(Long id, Map<String, Object> fields) {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-        Optional<Note> noteOptional = noteRepository.findById(id);
-
-        if (noteOptional.isEmpty())
-            throw new NoteNotFoundException("Note with id=" + id + " does not exist!");
-
-        Note noteToUpdate = noteOptional.get();
-
-        fields.forEach((k, v) -> {
-            Field field = ReflectionUtils.findField(Note.class, k);
-
-            if (k == null)
-                throw new InvalidNoteDataException("Available fields are: assignedTo, dateFrom" +
-                        ", dateTo or priority");
-
-            field.setAccessible(true);
-            if (field.getType().isEnum()) {
-                Enum<?> enumValue = Enum.valueOf((Class<Enum>) field.getType(), (String) fields.get(k));
-                ReflectionUtils.setField(field, noteToUpdate, enumValue);
-
-            } else if (k.equals("dateFrom") || k.equals("dateTo")) {
-                String newDate = v.toString();
-                try {
-                    Date from = k.equals("dateFrom") ? sdf.parse(newDate) : noteToUpdate.getDateFrom();
-                    Date to = k.equals("dateTo") ? sdf.parse(newDate) : noteToUpdate.getDateTo();
-
-                    if (from.after(to) || from.equals(to))
-                        throw new InvalidNoteDataException("Date to must be after date from!");
-
-                    ReflectionUtils.setField(field, noteToUpdate, sdf.parse(newDate));
-                } catch (ParseException e) {
-                    throw new RuntimeException(e);
-                }
-            } else if (k.equals("assignedTo")) {
-                Long assignedUserId = Long.parseLong(v.toString());
-                Optional<User> assignedUserOptional = userRepository.findById(assignedUserId);
-
-                if (assignedUserOptional.isEmpty())
-                    throw new UserNotFoundException("User with id=" + assignedUserId + " does not exist!");
-
-                ReflectionUtils.setField(field, noteToUpdate, assignedUserOptional.get());
+        if (newStatus != null) {
+            if (checkIfStatusExists(newStatus)) {
+                noteToUpdate.setStatus(incompleteNoteDataDTO.getStatus());
+            } else {
+                throw new InvalidNoteDataException("Status " + newStatus + " does not exists!");
             }
-        });
+        }
 
         noteRepository.save(noteToUpdate);
 
         return this.noteMapper.convertToNoteDTO(noteToUpdate);
     }
 
+    public NoteDTO updateNoteDetails(Long id, IncompleteNoteDataDTO incompleteNoteDataDTO) {
+        Optional<Note> noteOptional = noteRepository.findById(id);
+
+        if (noteOptional.isEmpty())
+            throw new NoteNotFoundException("Note with id=" + id + " does not exist!");
+
+        Note noteToUpdate = noteOptional.get();
+        Date newDateFrom = incompleteNoteDataDTO.getDateFrom();
+        Date newDateTo = incompleteNoteDataDTO.getDateTo();
+        Long assignedUserId = incompleteNoteDataDTO.getAssignedTo();
+        Note.Status newStatus = incompleteNoteDataDTO.getStatus();
+        Note.Priority newPriority = incompleteNoteDataDTO.getPriority();
+
+        if (newDateFrom != null && newDateTo != null) {
+            if (newDateFrom.after(newDateTo) || newDateFrom.equals(newDateTo)) {
+                throw new InvalidNoteDataException("Date to must be after date from!");
+            } else {
+                noteToUpdate.setDateFrom(newDateFrom);
+                noteToUpdate.setDateTo(newDateTo);
+            }
+        } else if (newDateFrom != null) {
+            if (newDateFrom.after(noteToUpdate.getDateTo()) || newDateFrom.equals(noteToUpdate.getDateTo())) {
+                throw new InvalidNoteDataException("Date to must be after date from!");
+            } else {
+                noteToUpdate.setDateFrom(newDateFrom);
+            }
+        } else if (newDateTo != null) {
+            if (newDateTo.before(noteToUpdate.getDateFrom()) || noteToUpdate.getDateFrom().equals(newDateTo)) {
+                throw new InvalidNoteDataException("Date to must be after date from!");
+            } else {
+                noteToUpdate.setDateTo(newDateTo);
+            }
+        }
+
+        if (assignedUserId != null) {
+            Optional<User> assignedUserOptional = userRepository.findById(assignedUserId);
+            if (assignedUserOptional.isEmpty())
+                throw new UserNotFoundException("User with id=" + assignedUserId + " does not exist!");
+            else
+                noteToUpdate.setAssignedTo(assignedUserOptional.get());
+        }
+
+        if (newStatus != null) {
+            if (checkIfStatusExists(newStatus)) {
+                noteToUpdate.setStatus(incompleteNoteDataDTO.getStatus());
+            } else {
+                throw new InvalidNoteDataException("Status " + newStatus + " does not exists!");
+            }
+        }
+
+        if (newPriority != null) {
+            if (checkIfPriorityExists(newPriority)) {
+                noteToUpdate.setPriority(incompleteNoteDataDTO.getPriority());
+            } else {
+                throw new InvalidNoteDataException("Priority " + newPriority + " does not exists!");
+            }
+        }
+
+        noteRepository.save(noteToUpdate);
+
+        return this.noteMapper.convertToNoteDTO(noteToUpdate);
+    }
 
     public List<NoteDTO> findAllByCreatedByAndCreationDateBetween(Long creatorId, Date startDate, Date endDate) {
         Optional<User> optionalUser = userRepository.findById(creatorId);
@@ -263,6 +269,22 @@ public class NoteService {
         User createdBy = optionalUser.get();
 
         return noteRepository.countAllByCreatedByAndPriorityAndDateToBetween(createdBy, priority, startDate, endDate);
+    }
+
+    private boolean checkIfStatusExists(Note.Status status) {
+        for (Note.Status s : Note.Status.values()) {
+            if (s.name().equals(status.name()))
+                return true;
+        }
+        return false;
+    }
+
+    private boolean checkIfPriorityExists(Note.Priority priority) {
+        for (Note.Priority p : Note.Priority.values()) {
+            if (p.name().equals(priority.name()))
+                return true;
+        }
+        return false;
     }
 
     public List<NoteDTO> addNoteList(List<Note> notes, Long id) {

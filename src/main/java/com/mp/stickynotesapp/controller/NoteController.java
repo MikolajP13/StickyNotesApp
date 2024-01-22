@@ -1,5 +1,6 @@
 package com.mp.stickynotesapp.controller;
 
+import com.mp.stickynotesapp.dto.IncompleteNoteDataDTO;
 import com.mp.stickynotesapp.dto.NoteDTO;
 import com.mp.stickynotesapp.model.Note;
 import com.mp.stickynotesapp.service.NoteService;
@@ -39,14 +40,14 @@ public class NoteController {
 
     @PreAuthorize("hasRole('EMPLOYEE')")
     @PatchMapping("/{id}/update-status")
-    public ResponseEntity<NoteDTO> updateNoteStatus(@PathVariable Long id, @RequestBody Map<String, Object> fields) {
-        return new ResponseEntity<>(noteService.updateNoteStatus(id, fields), HttpStatus.OK);
+    public ResponseEntity<NoteDTO> updateNoteStatus(@PathVariable Long id, @RequestBody IncompleteNoteDataDTO incompleteNoteDataDTO) {
+        return new ResponseEntity<>(noteService.updateNoteStatus(id, incompleteNoteDataDTO), HttpStatus.OK);
     }
 
     @PreAuthorize("hasRole('MANAGER')")
     @PatchMapping("/{id}/update-details")
-    public ResponseEntity<NoteDTO> updateNoteDetails(@PathVariable Long id, @RequestBody Map<String, Object> fields) {
-        return new ResponseEntity<>(noteService.updateNoteDetails(id, fields), HttpStatus.OK);
+    public ResponseEntity<NoteDTO> updateNoteDetails(@PathVariable Long id, @RequestBody IncompleteNoteDataDTO incompleteNoteDataDTO) {
+        return new ResponseEntity<>(noteService.updateNoteDetails(id, incompleteNoteDataDTO), HttpStatus.OK);
     }
 
     @PreAuthorize("hasRole('MANAGER')")

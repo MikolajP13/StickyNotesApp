@@ -1,5 +1,6 @@
 package com.mp.stickynotesapp.controller;
 
+import com.mp.stickynotesapp.dto.IncompleteUserDataDTO;
 import com.mp.stickynotesapp.dto.UserCreationDTO;
 import com.mp.stickynotesapp.dto.UserDTO;
 import com.mp.stickynotesapp.dto.UserForNoteDTO;
@@ -13,7 +14,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @AllArgsConstructor
@@ -24,8 +24,8 @@ public class UserController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/all")
-    public ResponseEntity<List<UserDTO>> findAllBy() {
-        List<UserDTO> users = userService.findAllBy();
+    public ResponseEntity<List<UserDTO>> findAll() {
+        List<UserDTO> users = userService.findAll();
         return ResponseEntity.ok(users);
     }
     @PreAuthorize("hasRole('ADMIN')")
@@ -60,15 +60,15 @@ public class UserController {
     }
     @PreAuthorize("hasRole('EMPLOYEE')")
     @PatchMapping("/{id}/update-password")
-    public ResponseEntity<UserDTO> updateUserPassword(@PathVariable Long id, @RequestBody Map<String, Object> fields) {
+    public ResponseEntity<UserDTO> updateUserPassword(@PathVariable Long id, @RequestBody IncompleteUserDataDTO incompleteUserDataDTO) {
 
-        return new ResponseEntity<>(userService.updateUserPassword(id, fields), HttpStatus.OK);
+        return new ResponseEntity<>(userService.updateUserPassword(id, incompleteUserDataDTO), HttpStatus.OK);
     }
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("{id}/admin-update")
-    public ResponseEntity<UserDTO> updateUserByAdministrator(@PathVariable Long id, @RequestBody Map<String, Object> fields) {
+    public ResponseEntity<UserDTO> updateUserByAdministrator(@PathVariable Long id, @RequestBody IncompleteUserDataDTO incompleteUserDataDTO) {
 
-        return new ResponseEntity<>(userService.updateUserByAdministrator(id, fields), HttpStatus.OK);
+        return new ResponseEntity<>(userService.updateUserByAdministrator(id, incompleteUserDataDTO), HttpStatus.OK);
     }
 
 }

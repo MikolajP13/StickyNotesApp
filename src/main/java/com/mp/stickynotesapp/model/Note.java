@@ -52,7 +52,7 @@ public class Note {
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     private Date dateTo;
 
-    @NotNull(message = "Priority to is mandatory")
+    @NotNull(message = "Priority is mandatory")
     private Priority priority;
 
     private Status status;

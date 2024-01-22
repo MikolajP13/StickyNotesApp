@@ -1,5 +1,6 @@
 package com.mp.stickynotesapp.service;
 
+import com.mp.stickynotesapp.dto.IncompleteUserDataDTO;
 import com.mp.stickynotesapp.dto.UserCreationDTO;
 import com.mp.stickynotesapp.dto.UserDTO;
 import com.mp.stickynotesapp.dto.UserForNoteDTO;
@@ -13,13 +14,11 @@ import com.mp.stickynotesapp.repository.RoleRepository;
 import com.mp.stickynotesapp.repository.UserRepository;
 import com.mp.stickynotesapp.util.UserMapper;
 import com.neovisionaries.i18n.CountryCode;
-import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.util.ReflectionUtils;
 
-import java.lang.reflect.Field;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -35,69 +34,68 @@ public class UserService {
     private final static String ROLE_MANAGER = "ROLE_MANAGER";
     private final static String ROLE_EMPLOYEE = "ROLE_EMPLOYEE";
 
-    public UserDTO updateUserPassword(Long id, Map<String, Object> fields) {
+    public UserDTO updateUserPassword(Long id, IncompleteUserDataDTO incompleteUserDataDTO) {
         Optional<User> optionalUser = userRepository.findById(id);
 
         if (optionalUser.isEmpty())
             throw new UserNotFoundException("User with id=" + id + " does not exist!");
 
-        String oldPassword = (String) fields.get("oldPassword");
+        String oldPassword = incompleteUserDataDTO.getOldPassword();
+        String newPassword = incompleteUserDataDTO.getNewPassword();
 
         User userToUpdate = optionalUser.get();
 
-        fields.forEach((k, v) -> {
-            Field passwordField = ReflectionUtils.findField(User.class, k);
-
-            if (passwordField == null || !k.equals("password"))
-                throw new InvalidUserDataException("Only password field is available!");
-
+        if (oldPassword != null && newPassword != null) {
             if (!passwordEncoder.matches(oldPassword, userToUpdate.getPassword()))
                 throw new InvalidPasswordException("Old password does not match!");
-
-            String newPassword = (String) fields.get("password");
-            passwordField.setAccessible(true);
 
             if (passwordEncoder.matches(newPassword, userToUpdate.getPassword()))
                 throw new InvalidPasswordException("Cannot set the same password!");
 
-            ReflectionUtils.setField(passwordField, userToUpdate, passwordEncoder.encode(newPassword));
+            userToUpdate.setPassword(passwordEncoder.encode(newPassword));
 
             if (userToUpdate.getIsFirstLogin())
                 userToUpdate.setIsFirstLogin(false);
 
-        });
-
-        userRepository.save(userToUpdate);
+            userRepository.save(userToUpdate);
+        }
 
         return this.userMapper.convertToUserDTO(userToUpdate);
     }
 
-    public UserDTO updateUserByAdministrator(Long id, Map<String, Object> fields) {
+    public UserDTO updateUserByAdministrator(Long id, IncompleteUserDataDTO incompleteUserDataDTO) {
         Optional<User> optionalUser = userRepository.findById(id);
 
         if (optionalUser.isEmpty())
             throw new UserNotFoundException("User with id=" + id + " does not exist!");
 
         User userToUpdate = optionalUser.get();
+        String password = incompleteUserDataDTO.getNewPassword();
+        String firstName = incompleteUserDataDTO.getFirstName();
+        String lastName = incompleteUserDataDTO.getLastName();
+        String workCountry = incompleteUserDataDTO.getWorkCountry();
 
-        fields.forEach((k, v) -> {
-            Field field = ReflectionUtils.findField(User.class, k);
+        if (password != null) {
+            userToUpdate.setPassword(passwordEncoder.encode(password));
+        }
 
-            if (field == null)
-                throw new InvalidUserDataException("Available fields are: password, firstName" +
-                        ", lastName or workCountry");
+        if (firstName != null) {
+            userToUpdate.setFirstName(firstName);
+        }
 
-            field.setAccessible(true);
+        if (lastName != null) {
+            userToUpdate.setLastName(lastName);
+        }
 
-            if (k.equals("password")) {
-                ReflectionUtils.setField(field, userToUpdate, passwordEncoder.encode(v.toString()));
-            } else if (k.equals("firstName") || k.equals("lastName") || k.equals("workCountry")) {
-                if (k.equals("workCountry") && !this.countryNames.contains(v.toString()))
-                    throw new InvalidUserDataException("Work country not valid!");
-                ReflectionUtils.setField(field, userToUpdate, v);
-                userToUpdate.setUsername(this.createUsername(userToUpdate));
-            }
-        });
+        if (workCountry != null) {
+            if (!this.countryNames.contains(workCountry))
+                throw new InvalidUserDataException("Work country not valid!");
+            else
+                userToUpdate.setWorkCountry(workCountry);
+        }
+
+        if (firstName != null || lastName != null || workCountry != null)
+            userToUpdate.setUsername(this.createUsername(userToUpdate));
 
         userRepository.save(userToUpdate);
 
@@ -173,7 +171,7 @@ public class UserService {
         }
     }
 
-    public List<UserDTO> findAllBy() {
+    public List<UserDTO> findAll() {
         List<User> users = userRepository.findAll();
 
         return users.stream()

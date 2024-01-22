@@ -1,6 +1,5 @@
 package com.mp.stickynotesapp.dto;
 
-import com.mp.stickynotesapp.model.Note;
 import lombok.Data;
 
 import java.util.Date;
